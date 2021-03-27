@@ -1,53 +1,43 @@
 package dk.bringlarsen.junit5.exploration.nested;
 
-import org.jgrapht.Graph;
-import org.jgrapht.graph.*;
-import org.junit.jupiter.api.*;
+import dk.bringlarsen.junit5.exploration.jgraph.GraphDSL;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
-import static org.jgrapht.util.SupplierUtil.*;
+import static dk.bringlarsen.junit5.exploration.jgraph.GraphDSL.aSimpleDirectedGraph;
 import static org.junit.jupiter.api.Assertions.*;
 
 class SimpleDirectedGraphTest {
 
-    private Graph<String, DefaultEdge> graph;
-    private String v1 = "v1";
-    private String v2 = "v2";
-
-    @BeforeEach
-    void createGraph() {
-        graph = new SimpleDirectedGraph<>(createRandomUUIDStringSupplier(), DEFAULT_EDGE_SUPPLIER, false);
-    }
-
     @Nested
     class AddVertexTests {
 
-        @BeforeEach
-        void addVertices() {
-            graph.addVertex(v1);
-            graph.addVertex(v2);
-        }
-
         @Test
         @DisplayName("given two vertices expect a vertexSize of two")
-        public void testAddVertex() {
-            assertEquals(2, graph.vertexSet().size());
+        public void addVertexTest() {
+            GraphDSL graph = aSimpleDirectedGraph()
+                    .withVertices("v1", "v2");
+
+            assertTrue(graph.containsVertex("v1"));
+            assertTrue(graph.containsVertex("v2"));
         }
 
         @Nested
         class AddEdgeTests {
 
-            @BeforeEach
-            void createEdge() {
-                graph.addEdge(v1, v2);
-            }
-
             @Test
             @DisplayName("given edge expect directed edge")
             void directedEdgeTest() {
-                assertTrue(graph.containsEdge(v1, v2));
-                assertFalse(graph.containsEdge(v2, v1));
+                GraphDSL graph = aSimpleDirectedGraph()
+                        .withVertices("v1", "v2")
+                        .withEdge("v1", "v2");
+
+                assertTrue(graph.containsEdge("v1", "v2"));
+                assertFalse(graph.containsEdge("v2", "v1"));
             }
 
             @ParameterizedTest
@@ -57,16 +47,22 @@ class SimpleDirectedGraphTest {
                     "unknown, unknown"
             })
             @DisplayName("given an unknown vertex expect failure")
-            void unknownVertexTest(String vertex1, String vertex2) {
-                IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> graph.addEdge(vertex1, vertex2));
+            void unknownVertexTest(String source, String target) {
+                IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
+                        aSimpleDirectedGraph()
+                            .withVertices("v1")
+                            .withEdge(source, target));
 
-                assertEquals("no such vertex in graph: unknown", exception.getMessage());
+                assertTrue(exception.getMessage().contains("unknown"));
             }
 
             @Test
             @DisplayName("given a loop edge expect failure")
             void loopsNotAllowedTest() {
-                IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> graph.addEdge(v1, v1));
+                IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
+                        aSimpleDirectedGraph()
+                            .withVertices("v1")
+                            .withEdge("v1", "v1"));
 
                 assertEquals("loops not allowed", exception.getMessage());
             }
